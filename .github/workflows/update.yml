@@ -1,0 +1,118 @@
+name: Update and cache
+
+# Daily: pin the newest JETLS release and every maintained NixOS channel whose
+# Julia satisfies its compat (scripts/update.sh), build each channel's
+# jetls/jlfmt/julia and push them to Cachix, then commit sources.json. Nothing
+# is committed unless every channel builds.
+#
+# On push to master: build and cache what's pinned, without updating.
+
+on:
+  schedule:
+    - cron: "37 5 * * *"
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+env:
+  # TODO: the name of your Cachix cache, if `jetls-nix` is taken.
+  CACHIX_NAME: jetls-nix
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.sources.outputs.updated }}
+      channels: ${{ steps.channels.outputs.channels }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pin JETLS and channels
+        id: sources
+        if: github.event_name != 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: nix shell nixpkgs#curl nixpkgs#jq -c ./scripts/update.sh
+
+      - name: List channels
+        id: channels
+        run: echo "channels=$(jq -c '.channels | keys' sources.json)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sources
+          path: sources.json
+
+  build:
+    needs: update
+    if: github.event_name == 'push' || needs.update.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: ${{ fromJSON(needs.update.outputs.channels) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sources
+
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: ${{ env.CACHIX_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # The flake reads sources.json from its git tree; stage the new pin.
+      - run: git add sources.json
+
+      - name: Build ${{ matrix.channel }}
+        run: |
+          set="legacyPackages.x86_64-linux.\"${{ matrix.channel }}\""
+          nix build --print-build-logs \
+            ".#$set.jetls" ".#$set.jlfmt" ".#$set.julia"
+
+      - name: Smoke test
+        run: |
+          set="legacyPackages.x86_64-linux.\"${{ matrix.channel }}\""
+          nix run ".#$set.jetls" -- --version
+          echo 'g( x )' | nix run ".#$set.jlfmt" | grep -Fx 'g(x)'
+
+  commit:
+    needs: [update, build]
+    if: github.event_name != 'push' && needs.update.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sources
+
+      - name: Commit
+        run: |
+          summary=$(jq -r '"JETLS \(.jetls.tag) for \(.channels | to_entries | map("\(.key) (julia \(.value.julia))") | join(", "))"' sources.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "$summary" -- sources.json
+          git pull --rebase
+          git push

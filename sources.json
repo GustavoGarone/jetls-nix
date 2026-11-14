@@ -1,0 +1,20 @@
+{
+  "jetls": {
+    "tag": "2026-11-14",
+    "rev": "40a5e9cb824614ae7d7cf3e3a73f26282c0fa1cd",
+    "hash": "sha256-aFXTSrvwtgFZsI+fGFJ+ZUtMkBwmZXU0SahE9fOKMo8=",
+    "juliaCompat": "1.12.2 - 1.15"
+  },
+  "channels": {
+    "nixos-26.05": {
+      "rev": "f1e5c356f35d07e7b71a6b5e6c9338e0b029e0c0",
+      "narHash": "sha256-qXFIqA6FCcx7XeDzw0ZNlkDT9UiCzrNDwK8RuU8RcHM=",
+      "julia": "1.12.6"
+    },
+    "nixos-unstable": {
+      "rev": "d4f25a3e562008648d45bcf2d70bcc7422cad84e",
+      "narHash": "sha256-x9sADJvoVG0L6RejZB+/BB4YiGZFBZrfTlhF4uBq1tQ=",
+      "julia": "1.13.3"
+    }
+  }
+}
