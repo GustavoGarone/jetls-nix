@@ -12,8 +12,11 @@ let
   env = julia.withPackages.override { inherit juliaCpuTarget; } [ "JuliaFormatter" ];
   inherit (env) projectAndDepot;
 
+  # Uses `format_text`, which JuliaFormatter precompiles: `format_file` would
+  # handle the config for us but costs ~0.25s of JIT on every (fresh-process)
+  # call, a third of the formatter's whole run time.
   script = writeText "jlfmt.jl" ''
-    using JuliaFormatter
+    using JuliaFormatter, TOML
 
     # Nearest .JuliaFormatter.toml from the working directory upwards; Helix
     # runs formatters from the workspace root.
@@ -27,15 +30,29 @@ let
         end
     end
 
-    # format_file reads the config next to the file itself, so give it a copy.
-    mktempdir() do tmp
-        file = joinpath(tmp, "stdin.jl")
-        write(file, read(stdin))
-        config = find_config(pwd())
-        config === nothing || cp(config, joinpath(tmp, ".JuliaFormatter.toml"))
-        format_file(file)
-        write(stdout, read(file))
+    # Built lazily: constructing every style up front costs ~0.8s of compilation.
+    style(name) =
+        name == "yas" ? YASStyle() :
+        name == "blue" ? BlueStyle() :
+        name == "sciml" ? SciMLStyle() :
+        name == "minimal" ? MinimalStyle() :
+        name == "default" ? DefaultStyle() :
+        error("unknown JuliaFormatter style: $name")
+
+    # Config keys are format_text's keyword arguments, except `style` (a name)
+    # and `ignore` (file globs, meaningless for stdin); "nothing" means nothing.
+    function options(path)
+        path === nothing && return (;)
+        kw = Pair{Symbol,Any}[]
+        for (k, v) in TOML.parsefile(path)
+            k == "ignore" && continue
+            v = k == "style" ? style(v) : v == "nothing" ? nothing : v
+            push!(kw, Symbol(k) => v)
+        end
+        return NamedTuple(kw)
     end
+
+    write(stdout, format_text(read(stdin, String); options(find_config(pwd()))...))
   '';
 in
 writeShellApplication {
