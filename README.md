@@ -38,7 +38,7 @@ Binary cache:
 ```nix
 nix.settings = {
   substituters = [ "https://jetls-nix.cachix.org" ];
-  trusted-public-keys = [ "jetls-nix.cachix.org-1:…" ];
+  trusted-public-keys = [ "jetls-nix.cachix.org-1:NV1wdLix0eRK1BXK+kslibtvBJqKc4DQ7RBcMHByIgs=" ];
 };
 ```
 
