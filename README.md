@@ -58,6 +58,13 @@ that says so.
   packages). It precompiles `JETLS`, `JETLSCore` and `TestRunner` into a depot in the
   store for the same multi-CPU targets as the Julia sysimage. At runtime that
   depot is a read-only cache behind your `~/.julia`.
+- Package images don't cover the code JETLS compiles while serving (request
+  handlers, post-save analysis), so every new session would JIT it: seconds on
+  the first completion, hover or save. The build therefore runs a scripted LSP
+  session (`scripts/warmup-session.jl`) with `--trace-compile`, and precompiles
+  the recorded methods in a small `JETLSWarmup` package (`warmup/`), which the
+  `jetls` wrapper starts through. Measured on a real project: first completion
+  5.9 s → 0.6 s, first signature help 2.3 s → 3 ms, `initialize` 8.6 s → 2.5 s.
 - `jlfmt` comes from `julia.withPackages ["JuliaFormatter"]`. When it reads stdin, it
   looks for `.JuliaFormatter.toml` upward from the working directory.
 - `sources.json` pins the JETLS tag and one nixpkgs revision per channel.

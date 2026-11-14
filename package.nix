@@ -68,13 +68,38 @@ stdenvNoCC.mkDerivation {
     [packages]
     EOF
     export JULIA_LOAD_PATH=$share/env/Project.toml:@stdlib
+    precompile_env() {
+      julia --startup-file=no --history-file=no --project=$share/env -e '
+        using Pkg
+        Pkg.instantiate()
+        Pkg.precompile(; strict = true)
+      '
+    }
     # Precompiles every package in the manifest, JETLSCore included: `JETLS` is
     # only a launcher that `Base.require`s it for serve/check/test.
-    julia --startup-file=no --history-file=no --project=$share/env -e '
-      using Pkg
-      Pkg.instantiate()
-      Pkg.precompile(; strict = true)
-    '
+    precompile_env
+
+    # Package images don't cover the code JETLS compiles while serving (request
+    # handlers, post-save analysis): every session would JIT it again, costing
+    # seconds on the first completion/hover/save. Record that code during a
+    # scripted LSP session, then cache it in the JETLSWarmup package.
+    cat > $TMPDIR/jetls-trace <<EOF
+    #!${stdenvNoCC.shell}
+    unset JULIA_CPU_TARGET
+    export JULIA_DEPOT_PATH=$TMPDIR/session-depot:$JULIA_DEPOT_PATH
+    exec ${lib.getExe julia} --startup-file=no --history-file=no --threads=auto \
+      --trace-compile=$TMPDIR/precompile.jl -m JETLS "\$@"
+    EOF
+    chmod +x $TMPDIR/jetls-trace
+    julia --startup-file=no ${./scripts/warmup-session.jl} $TMPDIR/jetls-trace
+    echo "recorded $(grep -c '^precompile(' $TMPDIR/precompile.jl) runtime-compiled methods"
+
+    cp -r ${./warmup} $share/warmup
+    chmod -R u+w $share/warmup
+    cp $TMPDIR/precompile.jl $share/warmup/src/precompile.jl
+    julia --startup-file=no ${./scripts/prepare-env.jl} $share/src $share/env $share/warmup
+    rm $share/env/Manifest.toml
+    precompile_env
 
     # Only the compile cache is useful at runtime; drop logs and registries.
     find $out/share/julia/depot -mindepth 1 -maxdepth 1 ! -name compiled -exec rm -rf {} +
@@ -88,11 +113,13 @@ stdenvNoCC.mkDerivation {
     # Mirrors the Pkg.Apps shim: an isolated LOAD_PATH (JETLS swaps in the
     # user's `@:@v#.#:@stdlib` itself when analysing a project) and the user's
     # writable depot first, with ours as a read-only cache behind it.
+    # JETLSWarmup's entry point just calls JETLS.main, but loading it makes the
+    # recorded runtime code available from its package image.
     makeWrapper ${lib.getExe julia} $out/bin/jetls \
       --set JULIA_LOAD_PATH "$share/env/Project.toml:@stdlib" \
       --set JULIA_DEPOT_PATH ":$out/share/julia/depot" \
       --unset JULIA_PROJECT \
-      --add-flags "--startup-file=no --history-file=no --threads=auto -m JETLS"
+      --add-flags "--startup-file=no --history-file=no --threads=auto -m JETLSWarmup"
 
     runHook postInstall
   '';

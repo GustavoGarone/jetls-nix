@@ -22,14 +22,21 @@ for f in files
     end
     open(io -> TOML.print(io, p; sorted=true), f, "w")
 end
-# The environment the server runs in: just JETLS (+ TestRunner, run via `julia -m`).
+# The environment the server runs in: JETLS, TestRunner (run via `julia -m`)
+# and, if given as a third argument, the JETLSWarmup package.
 proj = TOML.parsefile(joinpath(root, "Project.toml"))
 deps = Dict("JETLS" => proj["uuid"], "TestRunner" => proj["deps"]["TestRunner"])
+sources = Dict("JETLS" => Dict("path" => relpath(root, env)),
+               "TestRunner" => Dict("path" => relpath(joinpath(root, "vendor/TestRunner"), env)))
+if length(ARGS) >= 3
+    warmup = abspath(ARGS[3])
+    deps["JETLSWarmup"] = TOML.parsefile(joinpath(warmup, "Project.toml"))["uuid"]
+    sources["JETLSWarmup"] = Dict("path" => relpath(warmup, env))
+end
 mkpath(env)
 open(joinpath(env, "Project.toml"), "w") do io
     TOML.print(io, Dict(
         "deps" => deps,
-        "sources" => Dict("JETLS" => Dict("path" => relpath(root, env)),
-                          "TestRunner" => Dict("path" => relpath(joinpath(root, "vendor/TestRunner"), env))),
+        "sources" => sources,
         "preferences" => get(proj, "preferences", Dict())))
 end
