@@ -50,7 +50,7 @@ checker=$(nix build --no-link --print-out-paths "github:NixOS/nixpkgs/nixos-unst
 channels='{}'
 for ch in "${candidates[@]}"; do
   rev=$(gh_api "repos/NixOS/nixpkgs/git/ref/heads/$ch" | jq -r .object.sha)
-  version=$(nix eval --raw "github:NixOS/nixpkgs/$rev#julia.version")
+  version=$(nix eval --raw "github:NixOS/nixpkgs/$rev#julia-bin.version")
   if "$checker" --startup-file=no -e \
     'using Pkg; exit(VersionNumber(ARGS[1]) in Pkg.Versions.semver_spec(ARGS[2]) ? 0 : 1)' \
     "$version" "$compat"; then

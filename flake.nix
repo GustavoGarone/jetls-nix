@@ -23,7 +23,7 @@
         "aarch64-linux"
       ];
 
-      # Same targets the nixpkgs Julia sysimage is built for, so precompiled
+      # Same targets the official Julia sysimage is built for, so precompiled
       # caches load on any CPU instead of only on the builder's.
       cpuTargets = {
         x86_64-linux = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1);x86-64-v4,-rdrnd,base(1)";
@@ -44,7 +44,13 @@
       build =
         pkgs:
         let
-          inherit (pkgs) julia;
+          # The official binaries, not nixpkgs' source build. JETLS loads the
+          # analysed project's packages into its own process, and their
+          # BinaryBuilder artifacts (JLLs) expect the compiler support libraries
+          # upstream Julia bundles. The source build links Nix's GCC runtime
+          # instead, whose libgfortran (GCC 14) no longer pulls in libquadmath,
+          # so e.g. OpenSpecFun_jll (SpecialFunctions, Distributions) fails to load.
+          julia = pkgs.julia-bin;
           juliaCpuTarget = cpuTargets.${pkgs.stdenv.hostPlatform.system};
         in
         {

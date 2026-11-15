@@ -19,7 +19,7 @@ inputs.jetls-nix.url = "github:GustavoGarone/jetls-nix";
 # Picks the set built for your NixOS release (nixos-26.05, …, or unstable).
 let jl = inputs.jetls-nix.lib.packagesFor pkgs; in
 {
-  home.packages = [ jl.julia ];   # same Julia JETLS runs on (optional)
+  home.packages = [ jl.julia ];   # same Julia JETLS runs on (nixpkgs julia-bin)
 
   programs.helix.languages = {
     language-server.jetls = { command = lib.getExe jl.jetls; args = [ "serve" ]; };
@@ -45,10 +45,10 @@ nix.settings = {
 Other outputs:
 - `legacyPackages.<system>."nixos-26.05".{jetls,jlfmt,julia}`: every pinned channel.
 - `packages.<system>.{jetls,jlfmt,julia}`: the newest stable channel.
-- `overlays.default`: `jetls`/`jlfmt` built with *your* `julia`. It's only cached if your nixpkgs matches a pin exactly.
+- `overlays.default`: `jetls`/`jlfmt` built with *your* `julia-bin`. It's only cached if your nixpkgs matches a pin exactly.
 
 `lib.channels` lists the supported channels. If your release's Julia doesn't satisfy
-JETLS's `julia` compat (e.g. nixos-25.11 ships 1.12.1), `packagesFor` throws an error
+JETLS's `julia` compat, `packagesFor` throws an error
 that says so.
 
 ## How it works
@@ -65,11 +65,11 @@ that says so.
   the recorded methods in a small `JETLSWarmup` package (`warmup/`), which the
   `jetls` wrapper starts through. Measured on a real project: first completion
   5.9 s → 0.6 s, first signature help 2.3 s → 3 ms, `initialize` 8.6 s → 2.5 s.
-- `jlfmt` comes from `julia.withPackages ["JuliaFormatter"]`. When it reads stdin, it
+- `jlfmt` comes from `julia-bin.withPackages ["JuliaFormatter"]`. When it reads stdin, it
   looks for `.JuliaFormatter.toml` upward from the working directory.
 - `sources.json` pins the JETLS tag and one nixpkgs revision per channel.
   `scripts/update.sh` regenerates it. It takes the newest JETLS tag, then the two
-  newest `nixos-YY.MM` branches plus `nixos-unstable`, and keeps those whose `julia`
+  newest `nixos-YY.MM` branches plus `nixos-unstable`, and keeps those whose `julia-bin`
   satisfies JETLS's compat (checked with `Pkg.Versions`).
 - `.github/workflows/update.yml` runs daily. It updates the pins, builds every
   channel in parallel, pushes to Cachix, and commits `sources.json` only if all
