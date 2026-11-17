@@ -1,8 +1,8 @@
 {
   "jetls": {
-    "tag": "2026-11-14",
-    "rev": "40a5e9cb824614ae7d7cf3e3a73f26282c0fa1cd",
-    "hash": "sha256-aFXTSrvwtgFZsI+fGFJ+ZUtMkBwmZXU0SahE9fOKMo8=",
+    "tag": "2026-11-16",
+    "rev": "56a6f4af733a23179f93c8d4c0360ac7ccaea519",
+    "hash": "sha256-+HSTdcOvCzIziMNGC8G4JnWYwIMJ77YiwJxpjp4QDRM=",
     "juliaCompat": "1.12.2 - 1.15"
   },
   "channels": {
@@ -12,8 +12,8 @@
       "julia": "1.12.4"
     },
     "nixos-26.05": {
-      "rev": "f1e5c356f35d07e7b71a6b5e6c9338e0b029e0c0",
-      "narHash": "sha256-qXFIqA6FCcx7XeDzw0ZNlkDT9UiCzrNDwK8RuU8RcHM=",
+      "rev": "b349185bb79c7cf7ad8ea8c097931730bf473c71",
+      "narHash": "sha256-IfuPcOpwC+bYvBdtUhA9hHhY7xV7k9T5LeOTZFiJB4o=",
       "julia": "1.12.6"
     },
     "nixos-unstable": {
