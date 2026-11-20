@@ -12,13 +12,13 @@
       "julia": "1.12.4"
     },
     "nixos-26.05": {
-      "rev": "f68407657ad294471eb4b2e65d193df26edf729f",
-      "narHash": "sha256-E+XLAfnC7+bdr4qlEgRv6cdGmiqTU5oeFNKCha7epqQ=",
+      "rev": "ab5c18fdedfc8f9bbc9d773f10a540790e2787a7",
+      "narHash": "sha256-iKXCN36qYfBni+3nH4vAd98/kshoIsPB2S9mYWhma30=",
       "julia": "1.12.6"
     },
     "nixos-unstable": {
-      "rev": "04906337b6d53e8bb0eaf0470ae9f070a4d4eb55",
-      "narHash": "sha256-lME2lHoDHAaSHP3/okgiVoJ0icVEvsQH8LeU3We7tcc=",
+      "rev": "0bb8272318b4ca41bf0edc6224df3e3e3046b70d",
+      "narHash": "sha256-S5keGWzaKpuXo9MNoIC2FfTIuTyTnx8P4NhYJMEsTLI=",
       "julia": "1.13.3"
     }
   }
