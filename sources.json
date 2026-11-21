@@ -1,8 +1,8 @@
 {
   "jetls": {
-    "tag": "2026-11-16",
-    "rev": "56a6f4af733a23179f93c8d4c0360ac7ccaea519",
-    "hash": "sha256-+HSTdcOvCzIziMNGC8G4JnWYwIMJ77YiwJxpjp4QDRM=",
+    "tag": "2026-11-20",
+    "rev": "8dbcea0260bc7bdaad61a3d3a1ae51104d429564",
+    "hash": "sha256-xP9clHaxtPDOV3f2SYBHzGufFyHJjzN5n7T2yGz8oms=",
     "juliaCompat": "1.12.2 - 1.15"
   },
   "channels": {
